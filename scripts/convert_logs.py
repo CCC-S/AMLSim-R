@@ -910,4 +910,5 @@ if __name__ == "__main__":
     converter = LogConverter(_conf_json, _sim_name)
     converter.convert_alert_members()
     converter.convert_acct_tx()
-    converter.output_sar_cases()
+    # this function is buggy and actually not necessary
+    # converter.output_sar_cases()

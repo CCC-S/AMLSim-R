@@ -1,13 +1,13 @@
 {
   "general": {
     "random_seed": 0,
-    "simulation_name": "sample",
+    "simulation_name": "testSim",
     "total_steps": 720,
     "base_date": "2017-01-01"
   },
   "default": {
-    "min_amount": 100,
-    "max_amount": 1000,
+    "min_amount": 1,
+    "max_amount": 5000000,
     "min_balance": 50000,
     "max_balance": 100000,
     "start_step": -1,
@@ -36,7 +36,7 @@
     }
   },
   "input": {
-    "directory": "paramFiles/1K",
+    "directory": "paramFiles/100K",
     "schema": "schema.json",
     "accounts": "accounts.csv",
     "alert_patterns": "alertPatterns.csv",

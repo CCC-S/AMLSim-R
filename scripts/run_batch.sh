@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 
 if [[ $# -lt 1 ]]; then
     echo "Usage: sh $0 [ConfJSON] [LogFile(Optional)]"

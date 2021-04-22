@@ -12,6 +12,7 @@ import os
 import sys
 import logging
 from collections import Counter, defaultdict
+from matplotlib import pyplot as plt
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -92,6 +93,8 @@ def directed_configuration_model(_in_deg, _out_deg, seed=0):
 
     in_tmp_list = list()
     out_tmp_list = list()
+    random.shuffle(_in_deg)
+    random.shuffle(_out_deg)
     for n in _g.nodes():
         in_tmp_list.extend(_in_deg[n] * [n])
         out_tmp_list.extend(_out_deg[n] * [n])
@@ -112,6 +115,31 @@ def directed_configuration_model(_in_deg, _out_deg, seed=0):
     for idx, (_src, _dst) in enumerate(_g.edges()):
         if _src == _dst:
             logger.warning("Self loop from/to %d at %d" % (_src, idx))
+
+    plt.clf()
+    fig, axs = plt.subplots(1, 2, figsize=(16, 6))
+    ax1, ax2 = axs[0], axs[1]
+    in_degrees = list(_g.in_degree().values())
+    in_deg_seq = sorted(set(in_degrees))
+    in_deg_hist = [in_degrees.count(x) for x in in_deg_seq]
+
+    ax1.loglog(in_deg_seq, in_deg_hist, "bo-")
+    ax1.set_title("Output in-degree distribution")
+    ax1.set_xlabel("In-degree")
+    ax1.set_ylabel("Number of account vertices")
+
+    out_degrees = list(_g.out_degree().values())
+    out_deg_seq = sorted(set(out_degrees))
+    out_deg_hist = [out_degrees.count(x) for x in out_deg_seq]
+
+    ax2.loglog(out_deg_seq, out_deg_hist, "ro-")
+    ax2.set_title("Output out-degree distribution")
+    ax2.set_xlabel("Out-degree")
+    ax2.set_ylabel("Number of account vertices")
+
+    print("Multi In: {}".format(np.sum(in_degrees)))
+    print("Multi Out: {}".format(np.sum(out_degrees)))
+    plt.savefig("/data/s2434792/datadrive6/AMLSim/outputs/generating.png")
     return _g
 
 
@@ -282,6 +310,7 @@ class TransactionGenerator:
         hub_list = [n for n in self.g.nodes()  # Hub vertices (with large in/out degrees)
                     if self.degree_threshold <= self.g.in_degree(n) + self.g.out_degree(n)]
         self.hubs = set(hub_list)
+        logger.info("Found %d hubs with threshold of %d" % (len(self.hubs), self.degree_threshold))
         self.check_hub_exists()
 
     def add_normal_sar_edges(self, ratio=1.0):
@@ -527,7 +556,7 @@ class TransactionGenerator:
         in_deg, out_deg = get_degrees(deg_file, self.num_accounts)
         g = directed_configuration_model(in_deg, out_deg, self.seed)
 
-        logger.info("Add %d base transactions" % g.number_of_edges())
+        logger.info("Added %d base transactions" % g.number_of_edges())
         nodes = self.g.nodes()
         for src_i, dst_i in g.edges():
             assert (src_i != dst_i)
@@ -583,8 +612,9 @@ class TransactionGenerator:
             raise ValueError("Self loop from/to %s is not allowed for transaction networks" % str(orig))
         self.g.add_edge(orig, bene, key=self.tx_id, label="transaction", amount=amount, date=date, ttype=tx_type)
         self.tx_id += 1
-        if self.tx_id % 1000000 == 0:
-            logger.info("Added %d transactions" % self.tx_id)
+        # The info is misleading thus commented
+        # if self.tx_id % 1000000 == 0:
+        #     logger.info("Added %d transactions" % self.tx_id)
 
     # Load Custom Topology Files
     def add_subgraph(self, members, topology):
@@ -688,8 +718,10 @@ class TransactionGenerator:
                     period = random.randrange(min_period, max_period + 1)
                     self.add_aml_typology(is_sar, typology_name, num_accts, init_amount, period, bank_id, schedule)
                     count += 1
-                    if count % 1000 == 0:
-                        logger.info("Created %d alerts" % count)
+                    # if count % 1000 == 0:
+                    #     logger.info("Created %d alerts" % count)
+            logger.info("Added %d alert patterns" % count)
+            logger.info("After adding alerts, now total %d transactions" % self.g.number_of_edges())
 
     def add_aml_typology(self, is_sar, typology_name, num_accounts, init_amount, period, bank_id="", schedule=1):
         """Add an AML typology transaction set
@@ -1069,7 +1101,7 @@ class TransactionGenerator:
 
         acct_count = 0
         alert_member_file = os.path.join(self.output_dir, self.out_alert_member_file)
-        logger.info("Output alert member list to: " + alert_member_file)
+        # logger.info("Output alert member list to: " + alert_member_file)
         with open(alert_member_file, "w") as wf:
             writer = csv.writer(wf)
             base_attrs = ["alertID", "reason", "accountID", "isMain", "isSAR", "modelID",
@@ -1157,7 +1189,7 @@ if __name__ == "__main__":
         txg.count_fan_in_out_patterns(degree_threshold)
     txg.set_main_acct_candidates()  # Load a parameter CSV file for degrees of the base transaction graph
     txg.load_alert_patterns()  # Load a parameter CSV file for AML typology subgraphs
-    txg.add_normal_sar_edges(_ratio)
+    txg.add_normal_sar_edges(_ratio) # _ratio is 0.0 thus skipping this function
 
     if degree_threshold > 0:
         logger.info("Added alert transaction patterns")

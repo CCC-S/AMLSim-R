@@ -1,13 +1,14 @@
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+import warnings
+
 import os
 import sys
 import csv
 import json
 import networkx as nx
 from collections import defaultdict
-
-import matplotlib
-import matplotlib.pyplot as plt
-import warnings
 
 warnings.filterwarnings('ignore', category=matplotlib.cbook.deprecation.MatplotlibDeprecationWarning)
 

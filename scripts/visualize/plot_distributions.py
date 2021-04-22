@@ -1,3 +1,7 @@
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+import warnings
 """
 Plot statistical distributions from the transaction graph.
 """
@@ -12,9 +16,6 @@ import powerlaw
 from datetime import datetime, timedelta
 import numpy as np
 
-import matplotlib
-import matplotlib.pyplot as plt
-import warnings
 
 category = matplotlib.cbook.deprecation.MatplotlibDeprecationWarning
 warnings.filterwarnings('ignore', category=category)
@@ -170,57 +171,82 @@ def plot_degree_distribution(_g, _conf, _plot_img):
     out_degrees = [d * multiplier for d in out_degrees]
     out_deg_hist = [d * multiplier for d in out_deg_hist]
 
-    # ax1, ax2: Expected in/out-degree distributions from parameter files
-    # ax3, ax4: Output in/out-degree distributions from the output transaction list
+    # plot the expected degree distributions
     plt.clf()
-    fig, axs = plt.subplots(2, 2, figsize=(16, 12))
-    ax1, ax2, ax3, ax4 = axs[0, 0], axs[0, 1], axs[1, 0], axs[1, 1]
+    import seaborn as sns
+    sns.set_theme()
 
-    pw_result = powerlaw.Fit(in_degrees, verbose=False)
-    alpha = pw_result.power_law.alpha
-    alpha_text = "alpha = %.2f" % alpha
+    fig, axs = plt.subplots(1, 2, figsize=(16, 6))
+    ax1, ax2 = axs[0], axs[1]
+
     ax1.loglog(in_deg_seq, in_deg_hist, "bo-")
     ax1.set_title("Expected in-degree distribution")
-    plt.text(0.75, 0.9, alpha_text, transform=ax1.transAxes)
     ax1.set_xlabel("In-degree")
     ax1.set_ylabel("Number of account vertices")
 
-    pw_result = powerlaw.Fit(out_degrees, verbose=False)
-    alpha = pw_result.power_law.alpha
-    alpha_text = "alpha = %.2f" % alpha
+
     ax2.loglog(out_deg_seq, out_deg_hist, "ro-")
     ax2.set_title("Expected out-degree distribution")
-    plt.text(0.75, 0.9, alpha_text, transform=ax2.transAxes)
     ax2.set_xlabel("Out-degree")
     ax2.set_ylabel("Number of account vertices")
 
+    print("Expected In: {}".format(np.sum(in_degrees)))
+    print("Expected Out: {}".format(np.sum(out_degrees)))
+    plt.savefig("{}_exp.png".format(_plot_img.split('.')[0]))
+    plt.clf()
+
+    # plot the distributions in the connection graph
+    fig, axs = plt.subplots(1, 2, figsize=(16, 6))
+    ax1, ax2 = axs[0], axs[1]
     # Get degree from the output transaction list
     in_degrees = [len(_g.pred[n].keys()) for n in _g.nodes()]  # list(_g.in_degree().values())
     in_deg_seq = sorted(set(in_degrees))
     in_deg_hist = [in_degrees.count(x) for x in in_deg_seq]
-    pw_result = powerlaw.Fit(in_degrees, verbose=False)
-    alpha = pw_result.power_law.alpha
-    alpha_text = "alpha = %.2f" % alpha
-    ax3.loglog(in_deg_seq, in_deg_hist, "bo-")
-    ax3.set_title("Output in-degree distribution")
-    plt.text(0.75, 0.9, alpha_text, transform=ax3.transAxes)
-    ax3.set_xlabel("In-degree")
-    ax3.set_ylabel("Number of account vertices")
+
+    ax1.loglog(in_deg_seq, in_deg_hist, "bo-")
+    ax1.set_title("Output in-degree distribution")
+    ax1.set_xlabel("In-degree")
+    ax1.set_ylabel("Number of account vertices")
 
     out_degrees = [len(_g.succ[n].keys()) for n in _g.nodes()]  # list(_g.out_degree().values())
-    # print("max out-degree", max(out_degrees))
     out_deg_seq = sorted(set(out_degrees))
     out_deg_hist = [out_degrees.count(x) for x in out_deg_seq]
-    pw_result = powerlaw.Fit(out_degrees, verbose=False)
-    alpha = pw_result.power_law.alpha
-    alpha_text = "alpha = %.2f" % alpha
-    ax4.loglog(out_deg_seq, out_deg_hist, "ro-")
-    ax4.set_title("Output out-degree distribution")
-    plt.text(0.75, 0.9, alpha_text, transform=ax4.transAxes)
-    ax4.set_xlabel("Out-degree")
-    ax4.set_ylabel("Number of account vertices")
 
-    plt.savefig(_plot_img)
+    ax2.loglog(out_deg_seq, out_deg_hist, "ro-")
+    ax2.set_title("Output out-degree distribution")
+    ax2.set_xlabel("Out-degree")
+    ax2.set_ylabel("Number of account vertices")
+
+    print("Output In: {}".format(np.sum(in_degrees)))
+    print("Output Out: {}".format(np.sum(out_degrees)))
+    plt.savefig("{}_output.png".format(_plot_img.split('.')[0]))
+    plt.clf()
+
+    # plot the distributions in the transaction graph
+    fig, axs = plt.subplots(1, 2, figsize=(16, 6))
+    ax1, ax2 = axs[0], axs[1]
+    in_degrees = list(_g.in_degree().values())
+    in_deg_seq = sorted(set(in_degrees))
+    in_deg_hist = [in_degrees.count(x) for x in in_deg_seq]
+
+    ax1.loglog(in_deg_seq, in_deg_hist, "bo-")
+    ax1.set_title("Output in-degree distribution")
+    ax1.set_xlabel("In-degree")
+    ax1.set_ylabel("Number of account vertices")
+
+    out_degrees = list(_g.out_degree().values())
+    out_deg_seq = sorted(set(out_degrees))
+    out_deg_hist = [out_degrees.count(x) for x in out_deg_seq]
+
+    ax2.loglog(out_deg_seq, out_deg_hist, "ro-")
+    ax2.set_title("Output out-degree distribution")
+    ax2.set_xlabel("Out-degree")
+    ax2.set_ylabel("Number of account vertices")
+
+    print("Multi In: {}".format(np.sum(in_degrees)))
+    print("Multi Out: {}".format(np.sum(out_degrees)))
+    plt.savefig("{}_multi.png".format(_plot_img.split('.')[0]))
+
 
 
 def plot_wcc_distribution(_g, _plot_img):

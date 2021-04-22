@@ -150,7 +150,9 @@ public abstract class AMLTypology extends AbstractTransactionModel {
      * @return A random amount within "minAmount" and "maxAmount"
      */
     float getRandomAmount(){
-        return alert.getSimulator().random.nextFloat() * (maxAmount - minAmount) + minAmount;
+        float tolerate = alert.getSimulator().random.nextFloat() * 0.2F + 0.9F; //[0.9, 1.1]
+        float amount = alert.getSimulator().random.nextFloat() * (maxAmount - minAmount) + minAmount;
+        return amount * tolerate;
     }
 
     /**

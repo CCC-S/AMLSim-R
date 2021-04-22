@@ -95,7 +95,10 @@ public class SimProperties {
 
     public float getNormalBaseTxAmount(){
 //        return minTxAmount;
-        return minTxAmount + AMLSim.getRandom().nextFloat() * (maxTxAmount - minTxAmount);
+        // float temp =(float)(-0.1) * (float)Math.log(1 - AMLSim.getRandom().nextFloat());
+        float temp = 1.0F - (float)Math.pow(AMLSim.getRandom().nextFloat(), 0.09);
+        return minTxAmount + temp * (maxTxAmount - minTxAmount);
+        // return minTxAmount + AMLSim.getRandom().nextFloat() * (maxTxAmount - minTxAmount);
     }
     
 //    public float getSuspiciousTxAmount(){
