@@ -1,140 +1,145 @@
-Please cite our following papers if you use the data set for your publications. 
+This simulator is built upon [AMLSim](https://github.com/IBM/AMLSim). Please first have a look at that for installing dependencies and general introduction. This README focuses more on detailed configuration and description.
 
-BibTeX 
-@misc{AMLSim, author = {Toyotaro Suzumura and Hiroki Kanezashi}, title = {{Anti-Money Laundering Datasets}: {InPlusLab} Anti-Money Laundering DataDatasets}, howpublished = {\url{http://github.com/IBM/AMLSim/}}, year = 2021 }
+I was looking for synthetic transaction datasets to do Anti-Money Laundering (AML) research, and realised there weren't many of them. AMLSim was the only data generator found. But the quality of the data AMLSim generated is not sufficient for scientific research. Data quality analysis is presented here: [placeholder]
 
-EvolveGCN: Evolving Graph Convolutional Networks for Dynamic Graphs
-https://arxiv.org/abs/1902.10191
+The improvements made are summarised in this description.
 
-Scalable Graph Learning for Anti-Money Laundering: A First Look
-https://arxiv.org/abs/1812.00076
+## How to generate data?
 
-**Important: Please use the "master" branch for the practical use and testing. Other branches such as "new-schema" are outdated and unstable. [Wiki pages](https://github.com/IBM/AMLSim/wiki/) are still under construction and some of them do not catch up with the latest implementations. Please refer this README.md instead.**
+After checking the configuration file `config.json`, please follow the instructions in AMLSim (three mandatory steps):
 
-# AMLSim
-This project aims at building a multi-agent simulator of anti-money laundering - namely AML, and sharing synthetically generated data so that researchers can design and implement their new algorithms over the unified data.
+1. Run the commands to generate a transaction graph
 
+    ```bash
+    cd /path/to/AMLSim-R
+    python3 scripts/transaction_graph_generator.py conf.json
+    ```
 
-# Dependencies
-- Java 8 (Download and copy all jar files to `jars` directory: See also `jars/README.md`)
-    - [MASON](https://cs.gmu.edu/~eclab/projects/mason/) version 18
-    - [PaySim](https://github.com/EdgarLopezPhD/PaySim) (jar file already exists)
-    - [Commons-Math](http://commons.apache.org/proper/commons-math/download_math.cgi) version 3.6.1
-    - [JSON in Java](https://jar-download.com/artifacts/org.json/json/20180813) version 20180813
-    - [WebGraph](http://webgraph.di.unimi.it/) version 3.6.1
-    - [DSI Utilities](http://dsiutils.di.unimi.it/) version 2.5.4
-    - [fastutil](http://fastutil.di.unimi.it/) version 8.2.3
-    - [Sux for Java](http://sux.di.unimi.it/) version 4.2.0
-    - [JSAP](http://www.martiansoftware.com/jsap/) version 2.1
-    - [SLF4J](https://www.slf4j.org/download.html) version 1.7.25
-    - [MySQL Connector for Java](https://dev.mysql.com/downloads/connector/j/5.1.html) version 5.1
-- Python 3.7 (The following packages can be installed with `pip3 install -r requirements.txt`)
-    - numpy
-    - networkx==1.11 (We do not support version 2.* due to performance issues when creating a large graph)
-    - matplotlib==2.2.3 (The latest version is not compatible)
-    - pygraphviz
-    - powerlaw
-    - python-dateutil
+2. Run the commands to run the transaction simulator
 
+    ```bash
+    sh scripts/build_AMLSim.sh
+    sh scripts/run_AMLSim.sh conf.json
+    ```
 
-# Directory Structure
-See Wiki page [Directory Structure](https://github.com/IBM/AMLSim/wiki/Directory-Structure) for details.
+3. Run the command to convert the transaction log file to a formatted transaction `.csv` file.
 
+    ```bash
+    python3 scripts/convert_logs.py conf.json
+    ```
 
+The above sequential steps are put together in one script `scripts/run_batch.sh`, so one command should be enough to generate a dataset:
 
-# Introduction for Running AMLSim
-See Wiki page [Quick Introduction to AMLSim](https://github.com/IBM/AMLSim/wiki/Quick-Introduction-to-AMLSim) for details.
+```bash
+sh scripts/run_batch.sh
+```
 
-## 1. Generate transaction CSV files from parameter files (Python)
-Before running the Python script, please check and edit configuration file `conf.json`.
-```json5
+Make sure you have run `sh scripts/build_AMLSim.sh` to compile the Java files, this is a one-time work unless you have made modifications in the Java files.
+
+## How to configure AMLSim-R?
+
+For an AML dataset (AML stands for Anti-Money Laundering here, not Automated Machine Learning. Repeat, AML stands for Anti-Money Laundering.), the most interesting properties would be:
+
+1. The numbers of all accounts and all transactions
+2. The numbers of suspicious accounts and transactions
+3. The distributions of the amount of money in normal transactions and suspicious transactions
+
+### The numbers of all accounts and all transactions
+
+**Accounts**
+
+The configuration file `config.json` specifies a parameter directory:
+
+```text
 {
 //...
   "input": {
-    "directory": "paramFiles/1K",  // Parameter directory
-    "schema": "schema.json",  // Configuration file of output CSV schema
-    "accounts": "accounts.csv",  // Account list parameter file
-    "alert_patterns": "alertPatterns.csv",  // Alert list parameter file
-    "degree": "degree.csv",  // Degree sequence parameter file
-    "transaction_type": "transactionType.csv",  // Transaction type list file
-    "is_aggregated_accounts": true  // Whether the account list represents aggregated (true) or raw (false) accounts
+    "directory": "paramFiles/100K",  // Parameter directory
+    //...
   },
 //...
 }
 ```
 
-Then, please run transaction graph generator script.
-```bash
-cd /path/to/AMLSim
-python3 scripts/transaction_graph_generator.py conf.json
-```
+In file `paramFIles/100K/accounts.csv`, you can specify the number of accounts with certain attributes in each line. The total number of accounts is the sum of the values in the `count` column. The following is an example configuration.
 
-## 2. Build and launch the transaction simulator (Java)
-Parameters for the simulator are defined at the "general" section of `conf.json`. 
+| count| min_balance| max_balance| country| buisness_type | model  | bank_id  |
+| ------------- |:-------------:| :-----:| :-----:|:-----:|:-----:|:-----:|
+| 5000    | 1000 | 100000 | NL | I | 1 | bank |
+| 3000    | 1000 | 100000 | NL | I | 2 | bank |
+| ...     | ...| ...| ...| ...| ...| ...|
 
-```json5
+**Transactions:**
+
+The configuration file `config.json` specifies the total number simulation steps:
+
+```text
 {
   "general": {
-      "random_seed": 0,  // Seed of random number
-      "simulation_name": "sample",  // Simulation name (identifier)
-      "total_steps": 720,  // Total simulation steps
-      "base_date": "2017-01-01"  // The date corresponds to the step 0 (the beginning date of this simulation)
+    //...
+    "total_steps": 720,  // the number of simulation steps
+    //...
   },
 //...
 }
 ```
 
-Please compile Java files (if not yet) and launch the simulator.
-```bash
-sh scripts/build_AMLSim.sh
-sh scripts/run_AMLSim.sh conf.json
-```
+In each step, the transaction simulator (Java part) simulates a number of transactions. Changing the number of steps results in different numbers of transactions.
 
+### The numbers of suspicious accounts and transactions
 
-## 3. Convert the raw transaction log file
-The file names of the output data are defined at the "output" section of `conf.json`.
-```json5
+File `paramFIles/100K/alertPatterns.csv` specifies different types of suspicious (alert) patterns. Within each pattern, the range of the number of involved accounts is specified. Once the number of suspicious accounts is randomly selected from the range, the number of suspicious transactions is then also determined. For example, if 100 suspicious accounts are in a *fan_in* patter, then there would be 99 suspicious transactions, because of the nature of the pattern.
+
+The following is an example.
+
+| count| type | schedule_id| min_accounts| max_accounts| min_amount| max_amount| min_period| max_period | bank_id  | is_sar|
+| ------------- |:-------------:| :-----:| :-----:|:-----:|:-----:|:-----:|:-----:|:-----:|:-----:|:-----:|
+|25|fan_in|2|5|15|100.0|10000.0|5|20|bank|True|
+|35|fan_out|2|5|15|50000.0|100000.0|5|20|bank|True|
+| ...    | ...| ...| ...| ...| ...| ...|...|...|...|...|
+
+### The distributions of the amount of money
+
+**Normal transactions**
+
+The amount of money in every normal transaction is randomly selected from a shared range, which is specified in `config.json`:
+
+```text
 {
 //...
-"output": {
-    "directory": "outputs",  // Output directory
-    "accounts": "accounts.csv",  // Account list CSV
-    "transactions": "transactions.csv",  // All transaction list CSV
-    "cash_transactions": "cash_tx.csv",  // Cash transaction list CSV
-    "alert_members": "alert_accounts.csv",  // Alerted account list CSV
-    "alert_transactions": "alert_transactions.csv",  // Alerted transaction list CSV
-    "sar_accounts": "sar_accounts.csv",    // SAR account list CSV
-    "party_individuals": "individuals-bulkload.csv",
-    "party_organizations": "organizations-bulkload.csv",
-    "account_mapping": "accountMapping.csv",
-    "resolved_entities": "resolvedentities.csv",
-    "transaction_log": "tx_log.csv",
-    "counter_log": "tx_count.csv",
-    "diameter_log": "diameter.csv"
+  "default": {
+    "min_amount": 1,
+    "max_amount": 5000000,
+    //...
   },
 //...
 }
 ```
 
-```bash
-python3 scripts/convert_logs.py conf.json
-```
+The original AMLSim select values from this range randomly and uniformly, which is rather unrealistic. The distribution can be modified in file `src/amlsim/SimProperties.java`,line 96, function `getNormalBaseTxAmount()`.
 
-## 4. Export statistical information of the output data to image files (optional)
+AMLSim-R uses a power law distribution:
 
-```bash
-python3 scripts/visualize/plot_distributions.py conf.json
-```
+<img src="https://render.githubusercontent.com/render/math?math=x^{\prime} = T_{\text{min}} %2B (1 - x^{\frac{1}{11}}) \cdot (T_{\text{max}} - T_{\text{min}})">
 
-## 5. Validate alert transaction subgraphs by comparison with the parameter file (optional)
-```
-python3 scripts/validation/validate_alerts.py conf.json
-```
+T_min and T_max are the boundaries set above.
 
 
+**Suspicious transactions**
 
-## Remove all log and generated image files from `outputs` directory and a temporal directory
-```bash
-sh scripts/clean_logs.sh
-```
+This is also configured in file `paramFIles/100K/alertPatterns.csv`. The file specifies the number of suspicious patterns and the range of the amount of money involved. Tuning these two numbers can produce desired distributions.
 
+The following is an example of realistic suspicious transactions, which is summarised from the annual reports from 2017 to 2019 published by Dutch Financial Intelligence Unit. See more in the Data Quality Analysis: [placeholder]
+
+| Amount|pct_num|pct_amt|
+| ------------- |:-------------:| :-----:|
+|€0-€10K|79%|3%|
+|€10K-€100K|16%|17%|
+|€100K-€1M|5%|36%|
+|€1M-€5M|1%|44%|
+|Total|100%|100%|
+
+## Miscellaneous Improvements
+
+1. AMLSim generates edges according to a degree distribution configuration `paramFIles/100K/degree.csv`. But it was implemented in such a way that only accounts have high in-degrees can have high out-degrees. This binding is not reasonable. For example, an employee only receives money from her company (in-degree of 1) but pay multiple bills (high out-degree). An improved implementation is done in file `scripts/transaction_graph_generator.py`, line 96.
+2. AMLSim provides an optional step to plot in/out-degree distributions for the transaction graph; but its output is misleading. Its output is the degree distributions for the *connection graph*, not the *transaction graph*. A connection graph is a prerequisite of a transaction graph: transactions are derived from connections. AMLSim-R outputs distributions of both graphs. The implementation is done in file `scripts/visualize/plot_distributions.py`, line 180.
